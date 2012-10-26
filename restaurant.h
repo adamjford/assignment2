@@ -19,5 +19,6 @@ typedef struct {
   
 } Restaurant;
 
+void getRestaurant(int i, Restaurant *r, Sd2Card *card);
 
 #endif
