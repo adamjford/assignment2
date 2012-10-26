@@ -7,8 +7,12 @@ ARDUINO_LIBS = SPI Adafruit_GFX Adafruit_ST7735 \
 # Either set this here or type `make upload BOARD_TAG=uno`
 BOARD_TAG = mega2560 
 
-ARDUINO_UA_DIR = C:/Users/Adam/arduino-ua
-include $(ARDUINO_UA_DIR)/mkfiles/ArduinoUA.mk
+ifeq ($(shell uname -s),Darwin)
+	include $(HOME)/arduino-ua/mkfiles/ArduinoUA.mk
+else
+ ARDUINO_UA_DIR = C:/Users/Adam/arduino-ua
+ include $(ARDUINO_UA_DIR)/mkfiles/ArduinoUA.mk
+endif
 
 # This is magic that I use to define MEGA or UNO in my C/C++ files.
 # Remember to `make clean` before `make upload`ing on a different type
