@@ -8,7 +8,7 @@ int16_t vertCalibration;
 
 #define MAX_VOLTAGE 1023
 #define MAX_HORIZONTAL 127
-#define MAX_VERTICAL 159
+#define MAX_VERTICAL 127
 
 uint16_t getHorizontal() {
   return map(analogRead(horizPin), 0, MAX_VOLTAGE, 0, MAX_HORIZONTAL);
