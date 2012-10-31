@@ -48,9 +48,6 @@ void setup(void) {
     Serial.println(r.name);
 }
 
-uint16_t horiz;
-uint16_t vert;
-
 void loop() {
   uint16_t horiz = getHorizontal();
   uint16_t vert = getVertical();
