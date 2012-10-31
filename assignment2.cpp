@@ -8,6 +8,7 @@
 #include "restaurant.h"
 #include "joystick.h"
 #include "conversion.h"
+#include "distance.h"
 
 // standard U of A library settings, assuming Atmel Mega SPI pins
 #define SD_CS      5  // Chip select line for SD card
@@ -23,15 +24,17 @@ Sd2Card card;
 lcd_image_t map_image = { "yeg-sm.lcd", 128, 128 };
 
 void loadDistances(uint16_t horiz, uint16_t vert, RestDist *distances) {
-  /*
   for(int i = 0; i < RESTAURANTS_COUNT; i++) {
     Restaurant rest;
     getRestaurant(i, &rest, &card);
     uint16_t rest_horiz = lon_to_x(rest.longitude_scaled);
     uint16_t rest_vert = lat_to_y(rest.latitude_scaled);
 
+    uint16_t distance = manhattanDist(horiz, vert, rest_horiz, rest_vert);
+
+    RestDist restDist = { i, distance };
+    distances[i] = restDist;
   }
-  */
 }
 
 void sortDistances(RestDist *distances) {
@@ -77,11 +80,34 @@ void sortDistances(uint16_t *A, uint16_t n) {
   }
 }
 
-
 void displayClosestRestaurants(uint16_t horiz, uint16_t vert) {
   RestDist distances[RESTAURANTS_COUNT];
   loadDistances(horiz, vert, distances);
   sortDistances(distances);
+
+  tft.fillScreen(0);
+  tft.setCursor(0, 0);
+  tft.setTextColor(0xFFFF);
+  tft.setTextWrap(false);
+  
+  for (int i=0; i < 20; i++) {
+    Restaurant r;
+    getRestaurant(distances[i].index, &r, &card);
+    tft.print(r.name);
+    tft.print("\n");
+  }
+  tft.print("\n");
+
+  while(!isButtonPressed()) {
+ 
+  }
+}
+
+void drawMap() {
+    // clear to yellow
+    tft.fillScreen(tft.Color565(0xff, 0xff, 0x00));
+
+    lcd_image_draw(&map_image, &tft, 0, 0, 0, 0, 128, 128);
 }
 
 void setup(void) {
@@ -96,10 +122,7 @@ void setup(void) {
     }
     Serial.println("OK!");
 
-    // clear to yellow
-    tft.fillScreen(tft.Color565(0xff, 0xff, 0x00));
-
-    lcd_image_draw(&map_image, &tft, 0, 0, 0, 0, 128, 128);
+    drawMap();
 
     // test out reading blocks from the SD card
     if (!card.init(SPI_HALF_SPEED, SD_CS)) {

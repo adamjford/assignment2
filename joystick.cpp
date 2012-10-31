@@ -19,5 +19,5 @@ uint16_t getVertical() {
 }
 
 uint8_t isButtonPressed() {
-  return digitalRead(selectPin) ? 0 : 1;
+  return digitalRead(selectPin) ? 1 : 0;
 }
