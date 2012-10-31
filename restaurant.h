@@ -16,8 +16,12 @@ typedef struct {
   int32_t longitude_scaled; // Scaled by 100 000
   int8_t  rating;           // Average rating, scale from 0 - 10
   char name[55];            // Always null terminated
-  
 } Restaurant;
+
+typedef struct {
+  uint16_t index;
+  uint8_t dist;
+} RestDist;
 
 void getRestaurant(int i, Restaurant *r, Sd2Card *card);
 
