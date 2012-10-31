@@ -7,6 +7,7 @@
 #include "lcd_image.h"
 #include "restaurant.h"
 #include "joystick.h"
+#include "conversion.h"
 
 // standard U of A library settings, assuming Atmel Mega SPI pins
 #define SD_CS      5  // Chip select line for SD card
@@ -22,7 +23,15 @@ Sd2Card card;
 lcd_image_t map_image = { "yeg-sm.lcd", 128, 128 };
 
 void loadDistances(uint16_t horiz, uint16_t vert, RestDist *distances) {
+  /*
+  for(int i = 0; i < RESTAURANTS_COUNT; i++) {
+    Restaurant rest;
+    getRestaurant(i, &rest, &card);
+    uint16_t rest_horiz = lon_to_x(rest.longitude_scaled);
+    uint16_t rest_vert = lat_to_y(rest.latitude_scaled);
 
+  }
+  */
 }
 
 void sortDistances(RestDist *distances) {
