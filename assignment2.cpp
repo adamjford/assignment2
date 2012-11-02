@@ -110,6 +110,13 @@ void drawMap() {
 
 void setup(void) {
   Serial.begin(9600);
+  pinMode(JOYSTICK_BUTTON, INPUT);
+  pinMode(RATING_LED_0, OUTPUT);
+  pinMode(RATING_LED_1, OUTPUT);
+  pinMode(RATING_LED_2, OUTPUT);
+  pinMode(RATING_LED_3, OUTPUT);
+  pinMode(RATING_LED_4, OUTPUT);
+
   digitalWrite(JOYSTICK_BUTTON, HIGH);
 
   tft.initR(INITR_REDTAB);
@@ -132,9 +139,45 @@ void setup(void) {
   verticalMidpoint = getVertical();
 }
 
+uint8_t getRatingFilter() {
+  uint16_t input = analogRead(RATING_DIAL);
+  return map(input, 0, 1023, 0, 5);
+}
+
+void lightUpRatingLEDs(uint8_t ratingFilter) {
+  digitalWrite(RATING_LED_0, LOW);
+  digitalWrite(RATING_LED_1, LOW);
+  digitalWrite(RATING_LED_2, LOW);
+  digitalWrite(RATING_LED_3, LOW);
+  digitalWrite(RATING_LED_4, LOW);
+
+  if(ratingFilter >= 1) {
+    digitalWrite(RATING_LED_0, HIGH);
+  }
+
+  if(ratingFilter >= 2) {
+    digitalWrite(RATING_LED_1, HIGH);
+  }
+
+  if(ratingFilter >= 3) {
+    digitalWrite(RATING_LED_2, HIGH);
+  }
+
+  if(ratingFilter >= 4) {
+    digitalWrite(RATING_LED_3, HIGH);
+  }
+
+  if(ratingFilter >= 5) {
+    digitalWrite(RATING_LED_4, HIGH);
+  }
+
+}
+
 void loop() {
+  uint8_t ratingFilter = getRatingFilter();
   uint16_t horiz = getHorizontal();
   uint16_t vert = getVertical();
+  lightUpRatingLEDs(ratingFilter);
 
   tft.drawPixel(horiz, vert, 0);
   if(isButtonPressed()) {
