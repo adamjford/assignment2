@@ -1,3 +1,12 @@
+/*  CMPUT 296/114 - Assignment 2 - Due 2012-11-06
+
+    By: Ford, Adam
+        Lee, Austin
+
+    This assignment has been done under the full collaboration model,
+    and any extra resources are cited in the code below.
+*/
+
 #include <Adafruit_GFX.h>      // Core graphics library
 #include <Adafruit_ST7735.h> // Hardware-specific library
 #include <SPI.h>
@@ -12,7 +21,7 @@
 #include "conversion.h"
 #include "distance.h"
 
-#define RESTAURANTS_COUNT 1024
+#define RESTAURANTS_COUNT 1066
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 Sd2Card card;
@@ -48,6 +57,10 @@ uint16_t loadDistances(uint16_t horiz, uint16_t vert, uint8_t minimumRating, Res
   return RESTAURANTS_COUNT - skippedRestaurants;
 }
 
+/*
+ * Sorts an array of RestDists by their distance field,
+ * in ascending order
+ */
 void sortDistances(RestDist *distances, uint16_t length) {
   for(int i = 0; i < length - 1; i++) {
     int16_t smallesti = i;
@@ -63,6 +76,10 @@ void sortDistances(RestDist *distances, uint16_t length) {
   }
 }
 
+/*
+ * Writes out at most 20 restaurants on the screen,
+ * starting at the index passed in
+ */
 void writeOutRestaurants(uint16_t startingIndex, RestDist *distances, uint16_t length) {
   tft.fillScreen(0);
   tft.setCursor(0, 0);
@@ -79,20 +96,14 @@ void writeOutRestaurants(uint16_t startingIndex, RestDist *distances, uint16_t l
     tft.print(". ");
     tft.print(r.name);
     tft.print("\n");
-
-    /*
-    Serial.print(i + 1);
-    Serial.print(". ");
-    Serial.print(r.name);
-    Serial.print(" - ");
-    Serial.print(r.rating);
-    Serial.print(" - ");
-    Serial.println(distances[i].dist);
-    */
   }
   tft.print("\n");
 }
 
+/* 
+ * Loads, sorts and displays the closest restaurants to location on map
+ * passed in, filtered by rating.
+ */
 void displayClosestRestaurants(uint16_t horiz, uint16_t vert, uint8_t minimumRating) {
   RestDist distances[RESTAURANTS_COUNT];
   uint16_t restaurantCount = loadDistances(horiz, vert, minimumRating, distances);
@@ -107,6 +118,8 @@ void displayClosestRestaurants(uint16_t horiz, uint16_t vert, uint8_t minimumRat
 
   // wait for button to be pressed
   while(!isButtonPressed()) { 
+    // following code implements scrolling up or down
+    // the list of restaurants loaded previously
     uint16_t currentVertical = getVertical();
     int16_t shiftValue = 0;
     if(currentVertical > verticalMidpoint) {
@@ -118,11 +131,15 @@ void displayClosestRestaurants(uint16_t horiz, uint16_t vert, uint8_t minimumRat
     if(shiftValue) {
       uint16_t endIndex = startingIndex + 20;
 
+      // If we're scrolling up or we're not already at the end of the list,
+      // go ahead and scroll
       if(shiftValue < 0 || endIndex < restaurantCount) {
         startingIndex = startingIndex + shiftValue;
         if(startingIndex < 0) {
+          // Don't want to scroll past the top!
           startingIndex = 0;
         } else {
+          // Don't want to scroll past the end!
           if (startingIndex >= restaurantCount) {
             startingIndex = restaurantCount - 1;
           }
@@ -171,11 +188,14 @@ void setup(void) {
   if (!card.init(SPI_HALF_SPEED, SD_CS)) {
       Serial.println("Raw SD Initialization has failed");
       while (1) {};  // Just wait, stuff exploded.
-      }
+  }
 
   verticalMidpoint = getVertical();
 }
 
+// Maps the value from the potentiometer to a value
+// between 0 to 5 to determine how many LEDs should
+// be lit up
 uint8_t getRatingFilter() {
   uint16_t input = analogRead(RATING_DIAL);
   return map(input, 0, 1023, 0, 5);
