@@ -89,20 +89,16 @@ void displayClosestRestaurants(uint16_t horiz, uint16_t vert) {
       startingIndex = startingIndex + shiftValue;
       if(startingIndex < 0) {
         startingIndex = 0;
-     } else {
+      } else {
       writeOutRestaurants((uint16_t) startingIndex, distances);
-     }
+      }
     }
 
     delay(100);
   }
 
-  Serial.println("Button pressed!");
-
   // wait for button to be released
   while(isButtonPressed()) { }
-
-  Serial.println("Button released!");
 }
 
 void drawMap() {
