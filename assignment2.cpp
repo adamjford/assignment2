@@ -20,24 +20,38 @@ Sd2Card card;
 lcd_image_t map_image = { "yeg-sm.lcd", 128, 128 };
 uint16_t verticalMidpoint;
 
-void loadDistances(uint16_t horiz, uint16_t vert, RestDist *distances) {
+/*
+ * Loads small Restaurant Distance structs for the restaurants
+ * that meet the minimum rating into a supplied array,
+ * and returns the numbers of restaurants loaded
+ */
+uint16_t loadDistances(uint16_t horiz, uint16_t vert, uint8_t minimumRating, RestDist *distances) {
+  uint16_t skippedRestaurants = 0;
+  uint16_t distancesIndex = 0;
+
   for(int i = 0; i < RESTAURANTS_COUNT; i++) {
     Restaurant rest;
     getRestaurant(i, &rest, &card);
-    uint16_t rest_horiz = lon_to_x(rest.longitude_scaled);
-    uint16_t rest_vert = lat_to_y(rest.latitude_scaled);
+    if(rest.rating >= minimumRating) {
+      uint16_t rest_horiz = lon_to_x(rest.longitude_scaled);
+      uint16_t rest_vert = lat_to_y(rest.latitude_scaled);
 
-    uint16_t distance = manhattanDist(horiz, vert, rest_horiz, rest_vert);
+      uint16_t distance = manhattanDist(horiz, vert, rest_horiz, rest_vert);
 
-    RestDist restDist = { i, distance };
-    distances[i] = restDist;
+      RestDist restDist = { i, distance };
+      distances[distancesIndex] = restDist;
+      distancesIndex++;
+    } else {
+      skippedRestaurants++;
+    }
   }
+  return RESTAURANTS_COUNT - skippedRestaurants;
 }
 
-void sortDistances(RestDist *distances) {
-  for(int i = 0; i < RESTAURANTS_COUNT - 1; i++) {
+void sortDistances(RestDist *distances, uint16_t length) {
+  for(int i = 0; i < length - 1; i++) {
     int16_t smallesti = i;
-    for(int j = i + 1; j < RESTAURANTS_COUNT; j++) {
+    for(int j = i + 1; j < length; j++) {
       if(distances[j].dist < distances[smallesti].dist) {
         smallesti = j;
       }
@@ -49,48 +63,71 @@ void sortDistances(RestDist *distances) {
   }
 }
 
-void writeOutRestaurants(uint16_t startingIndex, RestDist *distances) {
+void writeOutRestaurants(uint16_t startingIndex, RestDist *distances, uint16_t length) {
   tft.fillScreen(0);
   tft.setCursor(0, 0);
   tft.setTextColor(0xFFFF);
   tft.setTextWrap(false);
   
-  for (int i=startingIndex; i < 20 + startingIndex; i++) {
+  for (int i = startingIndex; i < 20 + startingIndex; i++) {
+    if(i >= length) {
+      break;
+    }
     Restaurant r;
     getRestaurant(distances[i].index, &r, &card);
     tft.print(i + 1);
     tft.print(". ");
     tft.print(r.name);
     tft.print("\n");
+
+    /*
+    Serial.print(i + 1);
+    Serial.print(". ");
+    Serial.print(r.name);
+    Serial.print(" - ");
+    Serial.print(r.rating);
+    Serial.print(" - ");
+    Serial.println(distances[i].dist);
+    */
   }
   tft.print("\n");
 }
 
-void displayClosestRestaurants(uint16_t horiz, uint16_t vert) {
+void displayClosestRestaurants(uint16_t horiz, uint16_t vert, uint8_t minimumRating) {
   RestDist distances[RESTAURANTS_COUNT];
-  loadDistances(horiz, vert, distances);
-  sortDistances(distances);
+  uint16_t restaurantCount = loadDistances(horiz, vert, minimumRating, distances);
+  Serial.print("# of Restauraunts loaded: ");
+  Serial.println(restaurantCount);
+  sortDistances(distances, restaurantCount);
 
   int16_t startingIndex = 0;
+  int8_t scrollScale = 10;
 
-  writeOutRestaurants(startingIndex, distances);
+  writeOutRestaurants(startingIndex, distances, restaurantCount);
 
   // wait for button to be pressed
   while(!isButtonPressed()) { 
     uint16_t currentVertical = getVertical();
     int16_t shiftValue = 0;
     if(currentVertical > verticalMidpoint) {
-      shiftValue = 10;
+      shiftValue = scrollScale;
     } else if (currentVertical < verticalMidpoint) {
-      shiftValue = -10;
+      shiftValue = -scrollScale;
     }
 
     if(shiftValue) {
-      startingIndex = startingIndex + shiftValue;
-      if(startingIndex < 0) {
-        startingIndex = 0;
-      } else {
-      writeOutRestaurants((uint16_t) startingIndex, distances);
+      uint16_t endIndex = startingIndex + 20;
+
+      if(shiftValue < 0 || endIndex < restaurantCount) {
+        startingIndex = startingIndex + shiftValue;
+        if(startingIndex < 0) {
+          startingIndex = 0;
+        } else {
+          if (startingIndex >= restaurantCount) {
+            startingIndex = restaurantCount - 1;
+          }
+          writeOutRestaurants((uint16_t) startingIndex, distances, restaurantCount);
+        }
       }
     }
 
@@ -170,7 +207,6 @@ void lightUpRatingLEDs(uint8_t ratingFilter) {
   if(ratingFilter >= 5) {
     digitalWrite(RATING_LED_4, HIGH);
   }
-
 }
 
 void loop() {
@@ -183,7 +219,7 @@ void loop() {
   if(isButtonPressed()) {
     // wait for button to be released
     while(isButtonPressed()) { }
-    displayClosestRestaurants(horiz, vert);
+    displayClosestRestaurants(horiz, vert, ratingFilter * 2);
     drawMap();
   }
   lcd_image_draw(&map_image, &tft, horiz, vert, horiz, vert, 1, 1);
