@@ -18,6 +18,7 @@ Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 Sd2Card card;
 
 lcd_image_t map_image = { "yeg-sm.lcd", 128, 128 };
+uint16_t verticalMidpoint;
 
 void loadDistances(uint16_t horiz, uint16_t vert, RestDist *distances) {
   for(int i = 0; i < RESTAURANTS_COUNT; i++) {
@@ -48,26 +49,53 @@ void sortDistances(RestDist *distances) {
   }
 }
 
-void displayClosestRestaurants(uint16_t horiz, uint16_t vert) {
-  RestDist distances[RESTAURANTS_COUNT];
-  loadDistances(horiz, vert, distances);
-  sortDistances(distances);
-
+void writeOutRestaurants(uint16_t startingIndex, RestDist *distances) {
   tft.fillScreen(0);
   tft.setCursor(0, 0);
   tft.setTextColor(0xFFFF);
   tft.setTextWrap(false);
   
-  for (int i=0; i < 20; i++) {
+  for (int i=startingIndex; i < 20 + startingIndex; i++) {
     Restaurant r;
     getRestaurant(distances[i].index, &r, &card);
+    tft.print(i + 1);
+    tft.print(". ");
     tft.print(r.name);
     tft.print("\n");
   }
   tft.print("\n");
+}
+
+void displayClosestRestaurants(uint16_t horiz, uint16_t vert) {
+  RestDist distances[RESTAURANTS_COUNT];
+  loadDistances(horiz, vert, distances);
+  sortDistances(distances);
+
+  int16_t startingIndex = 0;
+
+  writeOutRestaurants(startingIndex, distances);
 
   // wait for button to be pressed
-  while(!isButtonPressed()) { }
+  while(!isButtonPressed()) { 
+    uint16_t currentVertical = getVertical();
+    int16_t shiftValue = 0;
+    if(currentVertical > verticalMidpoint) {
+      shiftValue = 10;
+    } else if (currentVertical < verticalMidpoint) {
+      shiftValue = -10;
+    }
+
+    if(shiftValue) {
+      startingIndex = startingIndex + shiftValue;
+      if(startingIndex < 0) {
+        startingIndex = 0;
+     } else {
+      writeOutRestaurants((uint16_t) startingIndex, distances);
+     }
+    }
+
+    delay(100);
+  }
 
   Serial.println("Button pressed!");
 
@@ -85,25 +113,27 @@ void drawMap() {
 }
 
 void setup(void) {
-    Serial.begin(9600);
-    digitalWrite(JOYSTICK_BUTTON, HIGH);
+  Serial.begin(9600);
+  digitalWrite(JOYSTICK_BUTTON, HIGH);
 
-    tft.initR(INITR_REDTAB);
+  tft.initR(INITR_REDTAB);
 
-    Serial.print("Initializing SD card...");
-    if (!SD.begin(SD_CS)) {
-      Serial.println("failed!");
-      return;
-    }
-    Serial.println("OK!");
+  Serial.print("Initializing SD card...");
+  if (!SD.begin(SD_CS)) {
+    Serial.println("failed!");
+    return;
+  }
+  Serial.println("OK!");
 
-    drawMap();
+  drawMap();
 
-    // test out reading blocks from the SD card
-    if (!card.init(SPI_HALF_SPEED, SD_CS)) {
-        Serial.println("Raw SD Initialization has failed");
-        while (1) {};  // Just wait, stuff exploded.
-        }
+  // test out reading blocks from the SD card
+  if (!card.init(SPI_HALF_SPEED, SD_CS)) {
+      Serial.println("Raw SD Initialization has failed");
+      while (1) {};  // Just wait, stuff exploded.
+      }
+
+  verticalMidpoint = getVertical();
 }
 
 void loop() {
